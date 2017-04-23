@@ -5,6 +5,7 @@
 #include <string>
 #include <queue>
 #include <map>
+#include <unordered_map>
 #include <boost/bimap.hpp>
 #include <Eigen/Core>
 #include "srrg_core_map/map_node.h"
@@ -156,8 +157,9 @@ private:
 class Linker{
 
 public:
-    Linker(float distance_threshold_ = 5, float resolution_ = 0.05):
+    Linker(float distance_threshold_ = 5, float connectivity_threshold_ = 0.01, float resolution_ = 0.05):
         _distance_threshold(distance_threshold_),
+        _connectivity_threshold(connectivity_threshold_),
         _resolution(resolution_),
         _local_maps(new srrg_core_map::MapNodeList),
         _relations(new srrg_core_map::BinaryNodeRelationSet){}
@@ -187,6 +189,7 @@ public:
 
 protected:
     float _distance_threshold;
+    float _connectivity_threshold;
     float _resolution;
     srrg_core_map::MapNodeList* _local_maps;
     srrg_core_map::BinaryNodeRelationSet* _relations;

@@ -93,13 +93,11 @@ public:
     SparseGrid (float resolution_ = 0.05,
                 Eigen::Vector3f origin_ = Eigen::Vector3f::Zero(),
                 Eigen::Vector3i dimensions_ = Eigen::Vector3i::Zero(),
-                int half_ = std::numeric_limits<int>::max(),
-                float threshold_ = 0.01)
+                int half_ = std::numeric_limits<int>::max())
         :_resolution(resolution_),
           _origin(origin_),
           _dimensions(dimensions_),
-          _half(half_),
-          _threshold(threshold_){
+          _half(half_){
         _inverse_resolution = 1./_resolution;
         _num_cells = _dimensions.x()*_dimensions.y()*_dimensions.z();
         _cloud = new Cloud;
@@ -261,7 +259,7 @@ public:
         return _traversability_map;
     }
 
-    bool checkConnectivity(){
+    bool checkConnectivity(float connectivity_threshold){
         float ground_count=0;
         float overlap_count=0;
         for(Vector3iCellPtrMap::iterator it = begin();
@@ -277,7 +275,7 @@ public:
         cerr << "Overlap: " << overlap_count << endl;
         cerr << "Ground: " << ground_count << endl;
         cerr << "Connection percentage: " << overlap_count/ground_count << endl;
-        return (overlap_count/ground_count > _threshold) ? true : false;
+        return (overlap_count/ground_count > connectivity_threshold) ? true : false;
     }
 
     inline float resolution(){ return _resolution;}
@@ -300,7 +298,6 @@ protected:
     Eigen::Vector3i _dimensions;
     int _num_cells;
     int _half;
-    float _threshold;
     Cloud* _cloud;
     TraversabilityMap* _traversability_map;
 
@@ -454,7 +451,7 @@ bool Linker::addEdge(LocalMapWithTraversability* lmap1, LocalMapWithTraversabili
     grid.extractCloud();
     grid.extractSurface();
 
-    return grid.checkConnectivity();
+    return grid.checkConnectivity(_connectivity_threshold);
 
 }
 
