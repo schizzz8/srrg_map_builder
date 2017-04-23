@@ -336,7 +336,7 @@ void Merger::computeBoundingBox(MapNodeList* local_maps_){
     _min = Eigen::Vector2f(centroid.x()-radius,centroid.y()-radius);
     _max = Eigen::Vector2f(centroid.x()+radius,centroid.y()+radius);
 
-    cerr << "Bounding Box: " << endl;
+    cerr << endl << "Bounding Box: " << endl;
     cerr << "\t>>Lower: " << _min.transpose() << endl;
     cerr << "\t>>Upper: " << _max.transpose() << endl;
 
@@ -460,12 +460,13 @@ BinaryNodeRelationSet *Linker::execute(){
         LocalMapWithTraversability* lmap1 = dynamic_cast<LocalMapWithTraversability*> (it->get());
         for(MapNodeList::iterator jt = _local_maps->begin(); jt != _local_maps->end(); jt++){
             LocalMapWithTraversability* lmap2 = dynamic_cast<LocalMapWithTraversability*> (jt->get());
-            cerr << "Checking connectivity for lmap " << lmap1->getId() << " and lmap " << lmap2->getId() << endl;
+            cerr << endl << "Checking connectivity for lmap " << lmap1 << " and lmap " << lmap2 << endl;
             if(!same(lmap1,lmap2) && closeEnough(lmap1,lmap2) && !alreadyConnected(lmap1,lmap2))
                 if(addEdge(lmap1,lmap2)) {
                     BinaryNodeRelation* rel = new BinaryNodeRelation(lmap1,lmap2,lmap1->transform().inverse()*lmap2->transform());
                     _relations->insert(std::tr1::shared_ptr<BinaryNodeRelation>(rel));
                 }
+            cerr << "#######################################################################################" << endl;
         }
     }
     cerr << "Added " << _relations->size() << " edges" << endl;

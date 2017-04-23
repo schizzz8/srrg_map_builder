@@ -124,14 +124,15 @@ public:
     }
 
     inline srrg_core_map::MapNodeList* execute(){
+        std::cerr << "Executing merging algorithm..." << std::endl;
         visit(_quadtree);
+        std::cerr << "Created " << _count << " local maps!!!" << std::endl;
         return _merged_local_maps;
     }
 
     inline void visualizeQuadtree(){
         _image = cv::Mat (_size.x(),_size.y(),CV_8UC3,cv::Scalar(255,255,255));
         visualize(_quadtree);
-        std::cerr << "Showing image..." << std::endl;
         cv::namedWindow("Image",cv::WINDOW_NORMAL);
         cv::imshow("Image",_image);
         cv::waitKey(0);
@@ -171,17 +172,29 @@ public:
     bool addEdge(srrg_core_map::LocalMapWithTraversability* lmap1, srrg_core_map::LocalMapWithTraversability* lmap2);
 
     inline bool same(srrg_core_map::LocalMapWithTraversability* lmap1, srrg_core_map::LocalMapWithTraversability* lmap2){
+        if(lmap1==lmap2)
+            std::cerr << "Local maps are the same!" << std::endl;
         return (lmap1 == lmap2) ? true : false;
     }
 
     inline bool closeEnough(srrg_core_map::LocalMapWithTraversability* lmap1, srrg_core_map::LocalMapWithTraversability* lmap2){
+        if((lmap1->transform().translation() - lmap2->transform().translation()).norm() > _distance_threshold)
+            std::cerr << "Local maps are not close enough!" << std::endl;
         return ((lmap1->transform().translation() - lmap2->transform().translation()).norm() <= _distance_threshold) ? true : false;
     }
 
     inline bool alreadyConnected(srrg_core_map::LocalMapWithTraversability* lmap1, srrg_core_map::LocalMapWithTraversability* lmap2){
+//        for(srrg_core_map::BinaryNodeRelationSet::iterator kt = _relations->begin(); kt != _relations->end(); kt++)
+//            if((*kt)->from()->getId() == lmap1->getId() && (*kt)->to()->getId() == lmap2->getId() ||
+//                    (*kt)->from()->getId() == lmap2->getId() && (*kt)->to()->getId() == lmap1->getId() ) {
+//                std::cerr << "Local maps are already connected!" << std::endl;
+//                return true;
+//            }
+//        return false;
         for(srrg_core_map::BinaryNodeRelationSet::iterator kt = _relations->begin(); kt != _relations->end(); kt++)
-            if((*kt)->from()->getId() == lmap1->getId() && (*kt)->to()->getId() == lmap2->getId() ||
-                    (*kt)->from()->getId() == lmap2->getId() && (*kt)->to()->getId() == lmap1->getId() ) {
+            if((*kt)->from() == lmap1 && (*kt)->to() == lmap2 ||
+                    (*kt)->from() == lmap2 && (*kt)->to() == lmap1) {
+                std::cerr << "Local maps are already connected!" << std::endl;
                 return true;
             }
         return false;
