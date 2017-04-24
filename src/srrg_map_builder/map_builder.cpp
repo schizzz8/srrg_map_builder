@@ -100,8 +100,6 @@ public:
           _half(half_){
         _inverse_resolution = 1./_resolution;
         _num_cells = _dimensions.x()*_dimensions.y()*_dimensions.z();
-        _cloud = new Cloud;
-        _traversability_map = new TraversabilityMap;
     }
 
     void insertCloud(const srrg_core_map::Cloud& cloud){
@@ -126,7 +124,7 @@ public:
         }
     }
 
-    srrg_core_map::Cloud* extractCloud(){
+    srrg_core_map::Cloud extractCloud(){
         for(Vector3iCellPtrMap::iterator it = begin();
             it != end();
             it++){
@@ -142,12 +140,12 @@ public:
             }
 
             centroid /= points.size();
-            _cloud->push_back(RichPoint(centroid));
+            _cloud.push_back(RichPoint(centroid));
         }
         return _cloud;
     }
 
-    srrg_core_map::TraversabilityMap* extractSurface(){
+    srrg_core_map::TraversabilityMap extractSurface(){
         IntImage indices;
         FloatImage elevations;
         UnsignedCharImage classified;
@@ -173,8 +171,8 @@ public:
         float robot_climb_step=0.1;
         float robot_height=0.5;
 
-        for (int i = 0; i < _cloud->size(); i++){
-            const RichPoint& point = _cloud->at(i);
+        for (int i = 0; i < _cloud.size(); i++){
+            const RichPoint& point = _cloud.at(i);
             float z = point.point().z();
             Eigen::Vector3f projected_point = (point.point() - bottom)*_inverse_resolution;
             int row = projected_point.y();
@@ -191,8 +189,8 @@ public:
             }
         }
 
-        for (int i = 0; i < _cloud->size(); i++){
-            const RichPoint& point = _cloud->at(i);
+        for (int i = 0; i < _cloud.size(); i++){
+            const RichPoint& point = _cloud.at(i);
             float z = point.point().z();
             Eigen::Vector3f projected_point = (point.point() - bottom)*_inverse_resolution;
             int row = projected_point.y();
@@ -242,7 +240,7 @@ public:
                 }
             }
 
-        _traversability_map = new TraversabilityMap (classified);
+        _traversability_map = TraversabilityMap (classified);
 
         for (int r=0; r<indices.rows; r++)
             for (int c=0; c<indices.cols; c++) {
@@ -251,7 +249,7 @@ public:
                     continue;
                 unsigned char & cell=classified.at<unsigned char>(r,c);
                 if(cell==0){
-                    const RichPoint& point = _cloud->at(idx);
+                    const RichPoint& point = _cloud.at(idx);
                     Eigen::Vector3i idx = toGrid(point.point());
                     at(idx)->setGround(true);
                 }
@@ -298,8 +296,8 @@ protected:
     Eigen::Vector3i _dimensions;
     int _num_cells;
     int _half;
-    Cloud* _cloud;
-    TraversabilityMap* _traversability_map;
+    Cloud _cloud;
+    TraversabilityMap _traversability_map;
 
     inline const bool hasCell(const Eigen::Vector3i& idx){
         Vector3iCellPtrMap::iterator it = find(idx);
@@ -396,31 +394,31 @@ void Merger::visit(QuadtreeNode* quadtree){
 
             Eigen::Isometry3f transform = Eigen::Isometry3f::Identity();
             transform = lmaps->middlePose();
-            LocalMapWithTraversability* reference = new LocalMapWithTraversability (transform);
-            reference->setCloud(new Cloud());
-            Cloud transformed_cloud;
-            Eigen::Vector3f lower,higher;
-            Eigen::Vector3f origin = Eigen::Vector3f::Zero();
-            Eigen::Vector3i dimensions = Eigen::Vector3i::Zero();
+            Cloud reference_cloud;
 
             for(MapNodeList::iterator it = lmaps->begin(); it != lmaps->end(); it++){
                 LocalMap* current = dynamic_cast<LocalMap*> (it->get());
                 if(current){
-                    Cloud().swap(transformed_cloud);
+                    Cloud transformed_cloud;
                     current->cloud()->transform(transformed_cloud,transform.inverse()*current->transform());
-                    transformed_cloud.add(*(reference->cloud()));
-                    transformed_cloud.computeBoundingBox(lower,higher);
-                    origin = lower - Eigen::Vector3f(5*_resolution,5*_resolution,5*_resolution);
-                    dimensions = (((higher + Eigen::Vector3f(5*_resolution,5*_resolution,5*_resolution))-lower)/_resolution).cast<int> ();
-                    SparseGrid grid (_resolution,origin,dimensions);
-                    grid.insertCloud(transformed_cloud);
-                    reference->setCloud(grid.extractCloud());
-                    reference->setTraversabilityMap(grid.extractSurface());
-                    reference->setLower(origin);
-                    reference->setUpper(higher);
-                    reference->setResolution(_resolution);
+                    reference_cloud.add(transformed_cloud);
                 }
             }
+            LocalMapWithTraversability* reference = new LocalMapWithTraversability (transform);
+            Eigen::Vector3f lower,higher;
+            Eigen::Vector3f origin = Eigen::Vector3f::Zero();
+            Eigen::Vector3i dimensions = Eigen::Vector3i::Zero();
+            reference_cloud.computeBoundingBox(lower,higher);
+            origin = lower - Eigen::Vector3f(5*_resolution,5*_resolution,5*_resolution);
+            dimensions = (((higher + Eigen::Vector3f(5*_resolution,5*_resolution,5*_resolution))-lower)/_resolution).cast<int> ();
+            SparseGrid grid (_resolution,origin,dimensions);
+            grid.insertCloud(reference_cloud);
+            reference->setCloud(new Cloud(grid.extractCloud()));
+            reference->setTraversabilityMap(new TraversabilityMap(grid.extractSurface()));
+            reference->setLower(origin);
+            reference->setUpper(higher);
+            reference->setResolution(_resolution);
+
             _merged_local_maps->addElement(reference);
         }
         visit(quadtree->getChild1());
