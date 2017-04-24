@@ -145,10 +145,10 @@ public:
         return _cloud;
     }
 
-    srrg_core_map::TraversabilityMap extractSurface(){
+    srrg_core::UnsignedCharImage extractSurface(){
         IntImage indices;
         FloatImage elevations;
-        UnsignedCharImage classified;
+        //UnsignedCharImage classified;
         Eigen::Vector3f bottom;
 
         indices.release();
@@ -162,11 +162,11 @@ public:
 
         indices.create(rows,cols);
         elevations.create(rows,cols);
-        classified.create(rows,cols);
+        _classified.create(rows,cols);
 
         indices = -1;
         elevations = 5;
-        classified = 127;
+        _classified = 127;
 
         float robot_climb_step=0.1;
         float robot_height=0.5;
@@ -217,15 +217,15 @@ public:
                 if (idx==-1)
                     continue;
                 if (idx<-1){
-                    classified.at<unsigned char>(r,c)=255;
+                    _classified.at<unsigned char>(r,c)=255;
                     continue;
                 }
-                classified.at<unsigned char>(r,c)=0;
+                _classified.at<unsigned char>(r,c)=0;
             }
 
-        for (int r=1; r<classified.rows-1; r++)
-            for (int c=1; c<classified.cols-1; c++) {
-                unsigned char & cell=classified.at<unsigned char>(r,c);
+        for (int r=1; r<_classified.rows-1; r++)
+            for (int c=1; c<_classified.cols-1; c++) {
+                unsigned char & cell=_classified.at<unsigned char>(r,c);
                 if (cell!=255)
                     continue;
                 bool one_big=false;
@@ -233,28 +233,29 @@ public:
                     for (int cc=-1; cc<=1; cc++) {
                         if (rr==0 && cc==0)
                             continue;
-                        one_big |= classified.at<unsigned char>(r+rr,c+cc)==255;
+                        one_big |= _classified.at<unsigned char>(r+rr,c+cc)==255;
                     }
                 if (! one_big) {
                     cell=0;
                 }
             }
 
-        _traversability_map = TraversabilityMap (classified);
+        //_traversability_map = TraversabilityMap (classified);
 
         for (int r=0; r<indices.rows; r++)
             for (int c=0; c<indices.cols; c++) {
                 int idx = indices.at<int>(r,c);
                 if (idx<0)
                     continue;
-                unsigned char & cell=classified.at<unsigned char>(r,c);
+                unsigned char & cell=_classified.at<unsigned char>(r,c);
                 if(cell==0){
                     const RichPoint& point = _cloud.at(idx);
                     Eigen::Vector3i idx = toGrid(point.point());
                     at(idx)->setGround(true);
                 }
             }
-        return _traversability_map;
+        //return _traversability_map;
+        return _classified;
     }
 
     bool checkConnectivity(float connectivity_threshold){
@@ -297,7 +298,8 @@ protected:
     int _num_cells;
     int _half;
     Cloud _cloud;
-    TraversabilityMap _traversability_map;
+    //TraversabilityMap _traversability_map;
+    UnsignedCharImage _classified;
 
     inline const bool hasCell(const Eigen::Vector3i& idx){
         Vector3iCellPtrMap::iterator it = find(idx);
@@ -404,6 +406,7 @@ void Merger::visit(QuadtreeNode* quadtree){
                     reference_cloud.add(transformed_cloud);
                 }
             }
+
             LocalMapWithTraversability* reference = new LocalMapWithTraversability (transform);
             Eigen::Vector3f lower,higher;
             Eigen::Vector3f origin = Eigen::Vector3f::Zero();
