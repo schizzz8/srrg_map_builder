@@ -416,6 +416,9 @@ void Merger::visit(QuadtreeNode* quadtree){
                     grid.insertCloud(transformed_cloud);
                     reference->setCloud(grid.extractCloud());
                     reference->setTraversabilityMap(grid.extractSurface());
+                    reference->setLower(origin);
+                    reference->setUpper(higher);
+                    reference->setResolution(_resolution);
                 }
             }
             _merged_local_maps->addElement(reference);
